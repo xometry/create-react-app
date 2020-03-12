@@ -31,6 +31,7 @@ const verifyTypeScriptSetup = require('./utils/verifyTypeScriptSetup');
 verifyTypeScriptSetup();
 // @remove-on-eject-end
 
+const _ = require('lodash');
 const path = require('path');
 const chalk = require('react-dev-utils/chalk');
 const fs = require('fs-extra');
@@ -55,20 +56,31 @@ const WARN_AFTER_CHUNK_GZIP_SIZE = 1024 * 1024;
 const isInteractive = process.stdout.isTTY;
 
 // Warn and crash if required files are missing
-if (!checkRequiredFiles([paths.appHtml, paths.appIndexJs])) {
+if (
+  !checkRequiredFiles([paths.appHtml, paths.appIndexJs, paths.appComponentJs])
+) {
   process.exit(1);
 }
 
 // Generate configuration
 const config = configFactory('production');
-
 config.optimization.runtimeChunk = false;
 config.optimization.splitChunks = {
   cacheGroups: {
     default: false,
   },
 };
-config.output.filename = 'main.js';
+
+const configMounted = _.cloneDeep(config);
+configMounted.output.filename = 'component-mounted.js';
+
+const configComponent = _.cloneDeep(config);
+configComponent.output.filename = 'component.js';
+configComponent.output.library = process.env.REACT_APP_BUILD_NAME;
+configComponent.output.libraryTarget = 'window';
+configComponent.entry = paths.appComponentJs;
+configComponent.plugins.shift(); // removes htmlplugin
+configComponent.plugins.shift(); // removes InterpolateHtmlPlugin
 
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
@@ -82,7 +94,7 @@ checkBrowsers(paths.appPath, isInteractive)
   .then(previousFileSizes => {
     // Remove all content but keep the directory so that
     // if you're in it, you don't end up in Trash
-    fs.emptyDirSync(paths.appBuild);
+    // fs.emptyDirSync(paths.appBuild);
     // Merge with the public folder
     copyPublicFolder();
     // Start the webpack build
@@ -168,67 +180,136 @@ function build(previousFileSizes) {
 
   console.log('Creating an optimized production component build...');
 
-  const compiler = webpack(config);
-  return new Promise((resolve, reject) => {
-    compiler.run((err, stats) => {
-      let messages;
-      if (err) {
-        if (!err.message) {
-          return reject(err);
+  // Remove all content but keep the directory so that
+  // if you're in it, you don't end up in Trash
+  fs.emptyDirSync(paths.appBuild);
+
+  const compilerMounted = webpack(configMounted);
+  const compilerComponent = webpack(configComponent);
+
+  return Promise.all([
+    new Promise((resolve, reject) => {
+      compilerMounted.run((err, stats) => {
+        let messages;
+        if (err) {
+          if (!err.message) {
+            return reject(err);
+          }
+
+          let errMessage = err.message;
+
+          // Add additional information for postcss errors
+          if (Object.prototype.hasOwnProperty.call(err, 'postcssNode')) {
+            errMessage +=
+              '\nCompileError: Begins at CSS selector ' +
+              err['postcssNode'].selector;
+          }
+
+          messages = formatWebpackMessages({
+            errors: [errMessage],
+            warnings: [],
+          });
+        } else {
+          messages = formatWebpackMessages(
+            stats.toJson({
+              all: false,
+              warnings: true,
+              errors: true,
+            })
+          );
+        }
+        if (messages.errors.length) {
+          // Only keep the first error. Others are often indicative
+          // of the same problem, but confuse the reader with noise.
+          if (messages.errors.length > 1) {
+            messages.errors.length = 1;
+          }
+          return reject(new Error(messages.errors.join('\n\n')));
+        }
+        if (
+          process.env.CI &&
+          (typeof process.env.CI !== 'string' ||
+            process.env.CI.toLowerCase() !== 'false') &&
+          messages.warnings.length
+        ) {
+          console.log(
+            chalk.yellow(
+              '\nTreating warnings as errors because process.env.CI = true.\n' +
+                'Most CI servers set it automatically.\n'
+            )
+          );
+          return reject(new Error(messages.warnings.join('\n\n')));
         }
 
-        let errMessage = err.message;
-
-        // Add additional information for postcss errors
-        if (Object.prototype.hasOwnProperty.call(err, 'postcssNode')) {
-          errMessage +=
-            '\nCompileError: Begins at CSS selector ' +
-            err['postcssNode'].selector;
-        }
-
-        messages = formatWebpackMessages({
-          errors: [errMessage],
-          warnings: [],
+        return resolve({
+          stats,
+          previousFileSizes,
+          warnings: messages.warnings,
         });
-      } else {
-        messages = formatWebpackMessages(
-          stats.toJson({
-            all: false,
-            warnings: true,
-            errors: true,
-          })
-        );
-      }
-      if (messages.errors.length) {
-        // Only keep the first error. Others are often indicative
-        // of the same problem, but confuse the reader with noise.
-        if (messages.errors.length > 1) {
-          messages.errors.length = 1;
-        }
-        return reject(new Error(messages.errors.join('\n\n')));
-      }
-      if (
-        process.env.CI &&
-        (typeof process.env.CI !== 'string' ||
-          process.env.CI.toLowerCase() !== 'false') &&
-        messages.warnings.length
-      ) {
-        console.log(
-          chalk.yellow(
-            '\nTreating warnings as errors because process.env.CI = true.\n' +
-              'Most CI servers set it automatically.\n'
-          )
-        );
-        return reject(new Error(messages.warnings.join('\n\n')));
-      }
-
-      return resolve({
-        stats,
-        previousFileSizes,
-        warnings: messages.warnings,
       });
-    });
-  });
+    }),
+
+    new Promise((resolve, reject) => {
+      compilerComponent.run((err, stats) => {
+        let messages;
+        if (err) {
+          if (!err.message) {
+            return reject(err);
+          }
+
+          let errMessage = err.message;
+
+          // Add additional information for postcss errors
+          if (Object.prototype.hasOwnProperty.call(err, 'postcssNode')) {
+            errMessage +=
+              '\nCompileError: Begins at CSS selector ' +
+              err['postcssNode'].selector;
+          }
+
+          messages = formatWebpackMessages({
+            errors: [errMessage],
+            warnings: [],
+          });
+        } else {
+          messages = formatWebpackMessages(
+            stats.toJson({
+              all: false,
+              warnings: true,
+              errors: true,
+            })
+          );
+        }
+        if (messages.errors.length) {
+          // Only keep the first error. Others are often indicative
+          // of the same problem, but confuse the reader with noise.
+          if (messages.errors.length > 1) {
+            messages.errors.length = 1;
+          }
+          return reject(new Error(messages.errors.join('\n\n')));
+        }
+        if (
+          process.env.CI &&
+          (typeof process.env.CI !== 'string' ||
+            process.env.CI.toLowerCase() !== 'false') &&
+          messages.warnings.length
+        ) {
+          console.log(
+            chalk.yellow(
+              '\nTreating warnings as errors because process.env.CI = true.\n' +
+                'Most CI servers set it automatically.\n'
+            )
+          );
+          return reject(new Error(messages.warnings.join('\n\n')));
+        }
+
+        return resolve({
+          stats,
+          previousFileSizes,
+          warnings: messages.warnings,
+        });
+      });
+    }),
+  ]).then(results => results[1]);
 }
 
 function copyPublicFolder() {
