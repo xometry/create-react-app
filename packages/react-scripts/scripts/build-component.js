@@ -70,6 +70,7 @@ config.optimization.splitChunks = {
     default: false,
   },
 };
+config.externals = { react: 'React' };
 
 const configMounted = _.cloneDeep(config);
 configMounted.output.filename = 'component-mounted.js';
@@ -81,7 +82,6 @@ configComponent.output.libraryTarget = 'window';
 configComponent.entry = paths.appComponentJs;
 configComponent.plugins.shift(); // removes htmlplugin
 configComponent.plugins.shift(); // removes InterpolateHtmlPlugin
-configComponent.externals = { react: 'React' };
 
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
