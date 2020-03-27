@@ -81,7 +81,7 @@ configComponent.output.libraryTarget = 'window';
 configComponent.entry = paths.appComponentJs;
 configComponent.plugins.shift(); // removes htmlplugin
 configComponent.plugins.shift(); // removes InterpolateHtmlPlugin
-configComponent.externals = { react: 'react' };
+configComponent.externals = { react: 'React' };
 
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
