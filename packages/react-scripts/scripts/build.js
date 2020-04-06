@@ -61,7 +61,6 @@ if (!checkRequiredFiles([paths.appHtml, paths.appIndexJs])) {
 
 // Generate configuration
 const config = configFactory('production');
-config.externals = { react: 'React' };
 
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
