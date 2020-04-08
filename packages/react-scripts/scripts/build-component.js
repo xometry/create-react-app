@@ -64,6 +64,12 @@ const config = configFactory('production');
 config.output.filename = 'component.js';
 config.output.library = process.env.REACT_APP_BUILD_NAME;
 config.output.libraryTarget = 'window';
+config.optimization.runtimeChunk = false;
+config.optimization.splitChunks = {
+  cacheGroups: {
+    default: false,
+  },
+};
 
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
