@@ -17,6 +17,8 @@ cd "$(dirname "$0")"
 temp_app_path=`mktemp -d 2>/dev/null || mktemp -d -t 'temp_app_path'`
 temp_module_path=`mktemp -d 2>/dev/null || mktemp -d -t 'temp_module_path'`
 
+build_id='e2e-test'
+
 # Load functions for working with local NPM registry (Verdaccio)
 source local-registry.sh
 
@@ -116,11 +118,12 @@ npm link "$temp_module_path/node_modules/test-integrity"
 # Test the build
 REACT_APP_SHELL_ENV_MESSAGE=fromtheshell \
   PUBLIC_URL=http://www.example.org/spa/ \
+  REACT_APP_BUILD_ID=$build_id \
   yarn build
 
 # Check for expected output
 exists build/*.html
-exists build/static/js/main.*.js
+exists build/static-$build_id/js/main.*.js
 
 # Unit tests
 # https://facebook.github.io/jest/docs/en/troubleshooting.html#tests-are-extremely-slow-on-docker-and-or-continuous-integration-ci-server
