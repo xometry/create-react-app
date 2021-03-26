@@ -416,7 +416,7 @@ module.exports = function (webpackEnv) {
                 ),
                 presets: [
                   [
-                    require.resolve('babel-preset-react-app'),
+                    require.resolve('xometry-babel-preset-react-app'),
                     {
                       runtime: hasJsxRuntime ? 'automatic' : 'classic',
                     },
@@ -425,7 +425,6 @@ module.exports = function (webpackEnv) {
                 // @remove-on-eject-begin
                 babelrc: false,
                 configFile: false,
-                presets: [require.resolve('xometry-babel-preset-react-app')],
                 // Make sure we have a unique cache identifier, erring on the
                 // side of caution.
                 // We remove this when the user ejects because the default
