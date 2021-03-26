@@ -25,10 +25,12 @@ const hasJsxRuntime = (() => {
 
 module.exports = babelJest.createTransformer({
   presets: [
-    require.resolve('xometry-babel-preset-react-app'), 
-    {
-      runtime: hasJsxRuntime ? 'automatic' : 'classic',
-    }
+    [
+      require.resolve('xometry-babel-preset-react-app'),
+      {
+        runtime: hasJsxRuntime ? 'automatic' : 'classic',
+      },
+    ],
   ],
   babelrc: false,
   configFile: false,
