@@ -16,6 +16,8 @@ cd "$(dirname "$0")"
 # http://unix.stackexchange.com/a/84980
 temp_app_path=`mktemp -d 2>/dev/null || mktemp -d -t 'temp_app_path'`
 
+build_id='e2e-test'
+
 # Load functions for working with local NPM registry (Verdaccio)
 source local-registry.sh
 
@@ -122,12 +124,12 @@ cd ../..
 # ******************************************************************************
 
 # Test local build command
-yarn build
+REACT_APP_BUILD_ID=$build_id yarn build
 # Check for expected output
 exists build/*.html
-exists build/static/js/*.js
-exists build/static/css/*.css
-exists build/static/media/*.svg
+exists build/static-$build_id/js/*.js
+exists build/static-$build_id/css/*.css
+exists build/static-$build_id/media/*.svg
 exists build/favicon.ico
 
 # Run tests with CI flag
@@ -230,12 +232,12 @@ function verify_module_scope {
 cd test-app
 
 # Test the build
-yarn build
+REACT_APP_BUILD_ID=$build_id yarn build
 # Check for expected output
 exists build/*.html
-exists build/static/js/*.js
-exists build/static/css/*.css
-exists build/static/media/*.svg
+exists build/static-$build_id/js/*.js
+exists build/static-$build_id/css/*.css
+exists build/static-$build_id/media/*.svg
 exists build/favicon.ico
 
 # Run tests with CI flag
@@ -267,12 +269,12 @@ yarn add @babel/plugin-transform-react-jsx-source @babel/plugin-syntax-jsx @babe
 test -n "$(git diff --staged --name-only)"
 
 # Test the build
-yarn build
+REACT_APP_BUILD_ID=$build_id yarn build
 # Check for expected output
 exists build/*.html
-exists build/static/js/*.js
-exists build/static/css/*.css
-exists build/static/media/*.svg
+exists build/static-$build_id/js/*.js
+exists build/static-$build_id/css/*.css
+exists build/static-$build_id/media/*.svg
 exists build/favicon.ico
 
 # Run tests, overriding the watch option to disable it.
